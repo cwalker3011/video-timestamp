@@ -6,7 +6,7 @@ const receiverVideo = document.getElementById('video-receiver');
 const startButton = document.getElementById('start-button');
 const callButton = document.getElementById('call-button');
 
-let senderStream;
+let localStream;
 let pc1;
 let pc2;
 const offerOptions = {
