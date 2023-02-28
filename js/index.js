@@ -22,28 +22,8 @@ const getOtherPc = (pc) => {
   return (pc === pc1) ? pc2 : pc1;
 }
 
-const onSetLocalSuccess = (pc) => {
-  console.log(`${getName(pc)} setLocalDescription complete`);
-}
-
-const onSetRemoteSuccess = (pc) => {
-  console.log(`${getName(pc)} setRemoteDescription complete`);
-}
-
-const onSetSessionDescriptionError = (error) => {
-  console.log(`Failed to set session description: ${error.toString()}`);
-}
-
-const onCreateSessionDescriptionError = (error) => {
-  console.log(`Failed to create session description: ${error.toString()}`);
-}
-
 const onAddIceCandidateSuccess = (pc) => {
   console.log(`${getName(pc)} addIceCandidate success`);
-}
-
-const onAddIceCandidateError = (pc, error) => {
-  console.log(`${getName(pc)} failed to add ICE Candidate: ${error.toString()}`);
 }
 
 const onIceStateChange = (pc, event) => {
@@ -58,7 +38,7 @@ const onIceCandidate = async (pc, event) => {
     await (getOtherPc(pc).addIceCandidate(event.candidate));
     onAddIceCandidateSuccess(pc);
   } catch (e) {
-    onAddIceCandidateError(pc, e);
+    console.error(e);
   }
   console.log(`${getName(pc)} ICE candidate:\n${event.candidate ? event.candidate.candidate : '(null)'}`);
 }
@@ -68,19 +48,22 @@ const onCreateAnswerSuccess = async (desc) => {
   console.log('pc2 setLocalDescription start');
   try {
     await pc2.setLocalDescription(desc);
-    onSetLocalSuccess(pc2);
+    console.log(`${getName(pc2)} setLocalDescription complete`);
   } catch (e) {
-    onSetSessionDescriptionError(e);
+    console.log(`Failed to set session description: ${e.toString()}`);
   }
   console.log('pc1 setRemoteDescription start');
   try {
     await pc1.setRemoteDescription(desc);
-    onSetRemoteSuccess(pc1);
+    console.log(`${getName(pc1)} setRemoteDescription complete`);
   } catch (e) {
-    onSetSessionDescriptionError(e);
+    console.error(e);
   }
 }
 
+/**
+ * Add timestamp—this would be done on the sender
+ */
 const addTimestamp = (encodedFrame) => {
   // mock timestamp
   const timestamp = 'abcde'
@@ -112,6 +95,9 @@ const addTimestamp = (encodedFrame) => {
   return encodedFrame;
 }
 
+/**
+ * Read timestamp—this would be done on the receiver
+ */
 const readTimeStamp = (encodedFrame) => {
   // access current data
   const view = new DataView(encodedFrame.data);
@@ -160,26 +146,22 @@ const gotRemoteTrack = (e) => {
   receiverVideo.srcObject = e.streams[0];
 }
 
-const setupSenderTransform = (sender) => {
-  sender.transform = new RTCRtpScriptTransform()
-}
-
 const onCreateOfferSuccess = async (desc) => {
   console.log(`Offer from pc1\n${desc.sdp}`);
   console.log('pc1 setLocalDescription start');
   try {
     await pc1.setLocalDescription(desc);
-    onSetLocalSuccess(pc1);
+    console.log(`${getName(pc1)} setLocalDescription complete`);
   } catch (e) {
-    onSetSessionDescriptionError();
+    console.error(e);
   }
 
   console.log('pc2 setRemoteDescription start');
   try {
     await pc2.setRemoteDescription({type: 'offer', sdp: desc.sdp.replace('red/90000', 'green/90000')});
-    onSetRemoteSuccess(pc2);
+    console.log(`${getName(pc2)} setRemoteDescription complete`);
   } catch (e) {
-    onSetSessionDescriptionError();
+    console.error(e);
   }
 
   console.log('pc2 createAnswer start');
@@ -187,7 +169,7 @@ const onCreateOfferSuccess = async (desc) => {
     const answer = await pc2.createAnswer();
     await onCreateAnswerSuccess(answer);
   } catch (e) {
-    onCreateSessionDescriptionError(e);
+    console.error(e);
   }
 }
 
@@ -241,7 +223,7 @@ const call = async () => {
     const offer = await pc1.createOffer(offerOptions);
     await onCreateOfferSuccess(offer);
   } catch (e) {
-    onCreateSessionDescriptionError(e);
+    console.error(e);
   }
 }
 
