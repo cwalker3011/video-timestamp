@@ -22,10 +22,6 @@ const getOtherPc = (pc) => {
   return (pc === pc1) ? pc2 : pc1;
 }
 
-const videoHandler = (encodedFrame, controller) => {
-  controller.enqueue(encodedFrame);
-}
-
 const onSetLocalSuccess = (pc) => {
   console.log(`${getName(pc)} setLocalDescription complete`);
 }
@@ -85,9 +81,75 @@ const onCreateAnswerSuccess = async (desc) => {
   }
 }
 
+const addTimestamp = (encodedFrame) => {
+  // mock timestamp
+  const timestamp = 'abcde'
+
+  // access current data
+  const view = new DataView(encodedFrame.data);
+
+  // create new data ArrayBuffer with 10 extra bytes
+  const newData = new ArrayBuffer(encodedFrame.data.byteLength + 10);
+  const newView = new DataView(newData);
+
+  // write original data to new data
+  for (let i = 0; i < encodedFrame.data.byteLength; ++i) {
+    newView.setInt8(i, view.getInt8(i));
+  }
+
+  // encode string to Uint8 array
+  const encoder = new TextEncoder();
+  const encodedTimestamp = encoder.encode(timestamp);
+  
+  // append encoded string to end
+  for (let i = 0; i < 10; i++) {
+    newView.setInt8(encodedFrame.data.byteLength + i, encodedTimestamp.at(i));
+  }
+
+  // set frame data
+  encodedFrame.data = newData;
+
+  return encodedFrame;
+}
+
+const readTimeStamp = (encodedFrame) => {
+  // access current data
+  const view = new DataView(encodedFrame.data);
+
+  // create new data ArrayBuffer with 10 fewer bytes
+  const newData = new ArrayBuffer(encodedFrame.data.byteLength - 10);
+  const newView = new DataView(newData);
+
+  // write original frame data to new data
+  for (let i = 0; i < encodedFrame.data.byteLength - 10; ++i) {
+    newView.setInt8(i, view.getInt8(i));
+  }
+
+  // get timestamp
+  const buffer = new ArrayBuffer(10)
+  const encodedTimestamp = new Uint8Array(buffer);
+  for (let i = 0; i < 10; i++) {
+    encodedTimestamp.set([view.getInt8((encodedFrame.data.byteLength - 10) + i)], i)
+  }
+
+  const decoder = new TextDecoder();
+  const timestamp = decoder.decode(encodedTimestamp);
+
+  encodedFrame.data = newData;
+
+  return {displayFrame: encodedFrame, timestamp};
+}
+
 /**
  * Pipe through Insertable Streams.
  */
+const videoHandler = (encodedFrame, controller) => {
+  const newFrame = addTimestamp(encodedFrame);
+  const {displayFrame, timestamp} = readTimeStamp(newFrame);
+  console.log(timestamp)
+  controller.enqueue(displayFrame);
+}
+
 const gotRemoteTrack = (e) => {
   console.log('pc2 received remote stream');
   const frameStreams = e.receiver.createEncodedStreams();
@@ -96,6 +158,10 @@ const gotRemoteTrack = (e) => {
   }))
       .pipeTo(frameStreams.writable);
   receiverVideo.srcObject = e.streams[0];
+}
+
+const setupSenderTransform = (sender) => {
+  sender.transform = new RTCRtpScriptTransform()
 }
 
 const onCreateOfferSuccess = async (desc) => {
