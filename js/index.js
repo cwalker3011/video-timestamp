@@ -64,14 +64,13 @@ const onCreateAnswerSuccess = async (desc) => {
  * Something like this would be done in Perception
  */
 const addTimestamp = (encodedFrame) => {
-  // mock timestamp
-  const timestamp = 'abcde'
-
+  const timestamp = new Date().toLocaleTimeString()
+  
   // access current data
   const view = new DataView(encodedFrame.data);
 
-  // create new data ArrayBuffer with 10 extra bytes (5 char string)
-  const newData = new ArrayBuffer(encodedFrame.data.byteLength + 10);
+  // create new data ArrayBuffer with 22 extra bytes (11 char string)
+  const newData = new ArrayBuffer(encodedFrame.data.byteLength + 22);
   const newView = new DataView(newData);
 
   // write original data to new data
@@ -84,7 +83,7 @@ const addTimestamp = (encodedFrame) => {
   const encodedTimestamp = encoder.encode(timestamp);
   
   // append encoded string to end
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 22; i++) {
     newView.setInt8(encodedFrame.data.byteLength + i, encodedTimestamp.at(i));
   }
 
@@ -104,19 +103,19 @@ const readTimeStamp = (encodedFrame) => {
   const view = new DataView(encodedFrame.data);
 
   // create new data ArrayBuffer with 10 fewer bytes
-  const newData = new ArrayBuffer(encodedFrame.data.byteLength - 10);
+  const newData = new ArrayBuffer(encodedFrame.data.byteLength - 22);
   const newView = new DataView(newData);
 
   // write original frame data to new data
-  for (let i = 0; i < encodedFrame.data.byteLength - 10; ++i) {
+  for (let i = 0; i < encodedFrame.data.byteLength - 22; ++i) {
     newView.setInt8(i, view.getInt8(i));
   }
 
   // get timestamp
-  const buffer = new ArrayBuffer(10)
+  const buffer = new ArrayBuffer(22)
   const encodedTimestamp = new Uint8Array(buffer);
-  for (let i = 0; i < 10; i++) {
-    encodedTimestamp.set([view.getInt8((encodedFrame.data.byteLength - 10) + i)], i)
+  for (let i = 0; i < 22; i++) {
+    encodedTimestamp.set([view.getInt8((encodedFrame.data.byteLength - 22) + i)], i)
   }
 
   const decoder = new TextDecoder();
