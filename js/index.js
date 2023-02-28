@@ -1,10 +1,8 @@
-/**
- * HTML video element
- */
 const senderVideo = document.getElementById('video-sender');
 const receiverVideo = document.getElementById('video-receiver');
 const startButton = document.getElementById('start-button');
 const callButton = document.getElementById('call-button');
+const timestampDisplay = document.getElementById('timestamp-display');
 
 let localStream;
 let pc1;
@@ -62,7 +60,8 @@ const onCreateAnswerSuccess = async (desc) => {
 }
 
 /**
- * Add timestamp—this would be done on the sender
+ * Add a UTF-encoded string payload to the end of the frame
+ * Something like this would be done in Perception
  */
 const addTimestamp = (encodedFrame) => {
   // mock timestamp
@@ -71,7 +70,7 @@ const addTimestamp = (encodedFrame) => {
   // access current data
   const view = new DataView(encodedFrame.data);
 
-  // create new data ArrayBuffer with 10 extra bytes
+  // create new data ArrayBuffer with 10 extra bytes (5 char string)
   const newData = new ArrayBuffer(encodedFrame.data.byteLength + 10);
   const newView = new DataView(newData);
 
@@ -96,7 +95,9 @@ const addTimestamp = (encodedFrame) => {
 }
 
 /**
- * Read timestamp—this would be done on the receiver
+ * Read the last 10 bytes of the frame and decode from
+ * UTF-8 into Javascript string form
+ * This would be done in Fleet UI
  */
 const readTimeStamp = (encodedFrame) => {
   // access current data
@@ -132,7 +133,7 @@ const readTimeStamp = (encodedFrame) => {
 const videoHandler = (encodedFrame, controller) => {
   const newFrame = addTimestamp(encodedFrame);
   const {displayFrame, timestamp} = readTimeStamp(newFrame);
-  console.log(timestamp)
+  timestampDisplay.innerText = `Timestamp: ${timestamp}`;
   controller.enqueue(displayFrame);
 }
 
